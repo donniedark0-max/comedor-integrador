@@ -1,5 +1,3 @@
-# app/main.py
-
 from fastapi.middleware.cors import CORSMiddleware
 
 import uuid, json
@@ -71,5 +69,5 @@ async def generate_complete_menu(req: MenuRequest):
 
 @app.post("/orders")
 async def create_order(order: Order):
-    # más adelante podrías guardar en Mongo, aquí solo simulo
+    
     return {"order_id": str(uuid.uuid4())}

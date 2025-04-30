@@ -1,7 +1,5 @@
-# app/settings.py
-
 from pydantic_settings import BaseSettings
-from pydantic import ConfigDict  # <-- importar ConfigDict desde pydantic
+from pydantic import ConfigDict
 
 class Settings(BaseSettings):
     INGREDIENTES_CSV: str
