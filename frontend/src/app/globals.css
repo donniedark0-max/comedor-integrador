@@ -1,8 +1,29 @@
 @import "tailwindcss";
 
 :root {
-  --background: #ffffff;
-  --foreground: #171717;
+  --color-primary: #3b82f6;
+  --color-secondary: #10b981;
+  --color-neutral-light: #f3f4f6;
+  --color-neutral-dark: #374151;
+  --color-accent: #fbbf24;
+  --color-white: #ffffff;
+
+  /* Espaciado */
+  --spacing-2: 0.5rem;
+  --spacing-4: 1rem;
+  --spacing-6: 1.5rem;
+
+  /* Bordes redondeados */
+  --rounded-lg: 0.5rem;
+  --rounded-xl: 0.75rem;
+
+  /* Fuentes */
+  --font-medium: 500;
+
+  /* Sombras */
+  --shadow-sm: 0 1px 2px 0 rgba(0, 0, 0, 0.05);
+  --shadow-md: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06);
+  --shadow-xl: 0 20px 25px -5px rgba(0, 0, 0, 0.1), 0 10px 10px -5px rgba(0, 0, 0, 0.04);
 }
 
 @theme inline {
@@ -14,7 +35,7 @@
 
 @media (prefers-color-scheme: dark) {
   :root {
-    --background: #0a0a0a;
+    --background: #ffdada;
     --foreground: #ededed;
   }
 }
@@ -22,5 +43,55 @@
 body {
   background: var(--background);
   color: var(--foreground);
-  font-family: Arial, Helvetica, sans-serif;
+  font-family: "Inter", system-ui, -apple-system, sans-serif;
+}
+
+@layer components {
+  .btn {
+    padding: var(--spacing-4) var(--spacing-2);
+    border-radius: var(--rounded-lg);
+    font-weight: var(--font-medium);
+    transition-property: color, background-color;
+    transition-duration: 200ms;
+  }
+
+  .btn-primary {
+    background-color: var(--color-primary);
+    color: var(--color-white);
+  }
+
+  .btn-primary:hover {
+    opacity: 0.9;
+  }
+
+  .btn-secondary {
+    background-color: var(--color-secondary);
+    color: var(--color-white);
+  }
+
+  .btn-secondary:hover {
+    opacity: 0.9;
+  }
+
+  .btn-accent {
+    background-color: var(--color-accent);
+    color: var(--color-neutral-dark);
+  }
+
+  .btn-accent:hover {
+    opacity: 0.9;
+  }
+
+  .card {
+    background-color: var(--color-white);
+    border-radius: var(--rounded-xl);
+    padding: var(--spacing-6);
+    box-shadow: var(--shadow-sm);
+    transition-property: all;
+    transition-duration: 200ms;
+  }
+
+  .card:hover {
+    box-shadow: var(--shadow-md);
+  }
 }
