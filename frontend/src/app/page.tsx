@@ -33,6 +33,30 @@ export default function Home() {
               </p>
             </div>
           </Link>
+
+          {/* Generar Menú Aleatorio */}
+          <Link href="/random-menu" className="card group">
+            <div className="flex flex-col items-center">
+              <div className="w-16 h-16 rounded-full bg-[var(--color-primary)]/10 flex items-center justify-center mb-4">
+                <svg
+                  xmlns="http://www.w3.org/2000/svg"
+                  className="h-8 w-8 text-[var(--color-primary)]"
+                  fill="none"
+                  viewBox="0 0 24 24"
+                  stroke="currentColor"
+                >
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M20 12H4m16 0l-4-4m4 4l-4 4" />
+                </svg>
+              </div>
+              <h2 className="text-2xl font-semibold mb-2 text-[var(--color-neutral-dark)] group-hover:text-[var(--color-primary)] transition-colors">
+                Generar Menú Aleatorio
+              </h2>
+              <p className="text-[var(--color-neutral-dark)]/70">
+                Genera un menú aleatorio con opciones variadas y balanceadas.
+              </p>
+            </div>
+          </Link>
+          
         </div>
       </div>
     </div>
