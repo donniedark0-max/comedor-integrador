@@ -27,7 +27,7 @@ export default function RootLayout({
             <div className="container mx-auto px-4 py-4">
               <nav className="flex justify-between items-center">
                 <Link href="/" className="text-xl font-bold text-[var(--color-primary)]">
-                  Comedor Universitario
+                  Comedor Universitario UTP
                 </Link>
                 <ul className="flex space-x-6">
                   <li>
