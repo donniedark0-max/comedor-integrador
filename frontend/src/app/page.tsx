@@ -1,6 +1,13 @@
-import Link from "next/link"
+import Link from 'next/link';
+import { auth } from '@clerk/nextjs/server';
+import { redirect } from 'next/navigation';
 
-export default function Home() {
+export default async function Home() {
+  const { userId } = await auth();  // Llama la sesión en server-side :contentReference[oaicite:3]{index=3}
+  if (!userId) {
+    redirect('/login');  // Redirige a tu página interna de login, no al hosted de Clerk :contentReference[oaicite:4]{index=4}
+  }
+
   return (
     <div className="container mx-auto px-4 py-12">
       <div className="max-w-3xl mx-auto text-center">
@@ -60,5 +67,5 @@ export default function Home() {
         </div>
       </div>
     </div>
-  )
+  );
 }

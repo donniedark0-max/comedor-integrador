@@ -35,8 +35,8 @@
 
 @media (prefers-color-scheme: dark) {
   :root {
-    --background: #ffdada;
-    --foreground: #ededed;
+    --background: #1f2937;
+    --foreground: #f3f4f6;
   }
 }
 
@@ -46,13 +46,35 @@ body {
   font-family: "Inter", system-ui, -apple-system, sans-serif;
 }
 
+/* Contenedor principal de autenticación */
+.auth-container {
+  display: flex;
+  flex-direction: row;
+  transition: background 0.5s ease;
+}
+.auth-container.signin-mode {
+  /* Panel de login a la derecha */
+  /* Por defecto flex-row, no hace falta override */
+}
+.auth-container.signup-mode {
+  /* Panel de registro a la izquierda */
+  flex-direction: row-reverse;
+}
+
+/* Ocultar elementos internos de Clerk */
+.clerk-form-title,
+.clerk-form-subtitle,
+.clerk-social-buttons,
+.clerk-layout__social {
+  display: none !important;
+}
+
 @layer components {
   .btn {
     padding: var(--spacing-4) var(--spacing-2);
     border-radius: var(--rounded-lg);
     font-weight: var(--font-medium);
-    transition-property: color, background-color;
-    transition-duration: 200ms;
+    transition: color 200ms, background-color 200ms;
   }
 
   .btn-primary {
@@ -87,11 +109,16 @@ body {
     border-radius: var(--rounded-xl);
     padding: var(--spacing-6);
     box-shadow: var(--shadow-sm);
-    transition-property: all;
-    transition-duration: 200ms;
+    transition: box-shadow 200ms, transform 200ms;
   }
 
   .card:hover {
     box-shadow: var(--shadow-md);
+    transform: translateY(-2px);
   }
+}
+
+/* Transición suave entre degradados de panel */
+.auth-panel {
+  transition: background 0.6s ease, color 0.6s ease;
 }
