@@ -3,9 +3,9 @@ import { auth } from '@clerk/nextjs/server';
 import { redirect } from 'next/navigation';
 
 export default async function Home() {
-  const { userId } = await auth();  // Llama la sesión en server-side :contentReference[oaicite:3]{index=3}
+  const { userId } = await auth();  
   if (!userId) {
-    redirect('/login');  // Redirige a tu página interna de login, no al hosted de Clerk :contentReference[oaicite:4]{index=4}
+    redirect('/login');
   }
 
   return (

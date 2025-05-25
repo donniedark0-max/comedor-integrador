@@ -15,7 +15,7 @@ export default function MenuPage() {
     setError(null)
 
     try {
-      const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/menus/complete`, {
+      const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/menus/balanced`, {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
