@@ -86,13 +86,12 @@ interface TextPanelProps {
 
 function TextPanel({ isSignUp, onToggleMode }: TextPanelProps) {
   const isMobile = useIsMobile();
-  const variants = isMobile ? verticalVariants : horizontalVariants;
   const btnBase = 'w-full rounded-lg py-3 px-5 text-sm font-semibold text-white shadow-lg focus:outline-none transition-transform duration-200';
 
   return (
     <motion.div
       custom={isSignUp}
-      variants={variants}
+      variants={isMobile ? verticalVariants : horizontalVariants}
       initial="initial"
       animate="animate"
       exit="exit"
@@ -130,6 +129,7 @@ export default function AuthPage() {
   const router = useRouter();
   const pathname = usePathname();
 
+  // Detectar si estamos en hash #signup
   useEffect(() => {
     const toggle = () => setIsSignUp(window.location.hash === '#signup');
     toggle();
@@ -143,6 +143,7 @@ export default function AuthPage() {
     router.replace(next ? `${pathname}#signup` : pathname, { scroll: false });
   };
 
+  // Si ya hay sesión, redirigir
   useEffect(() => {
     if (isLoaded && sessionId) {
       const dest = new URLSearchParams(window.location.search).get('redirect_url') || '/';
@@ -171,7 +172,11 @@ export default function AuthPage() {
       >
         <AnimatePresence mode="sync">
           <TextPanel isSignUp={isSignUp} onToggleMode={toggleMode} key={isSignUp ? 'textSignUp' : 'textSignIn'} />
-          <AuthPanel isSignUp={isSignUp} title={isSignUp ? '' : 'Bienvenido de Nuevo'} subtitle={isSignUp ? 'Únete ahora para disfrutar de todos nuestros servicios.' : 'Accede a tu cuenta y retoma donde lo dejaste.'}>
+          <AuthPanel
+            isSignUp={isSignUp}
+            title={isSignUp ? 'Únete a la familia' : 'Bienvenido de Nuevo'}
+            subtitle={isSignUp ? 'Únete ahora para disfrutar de todos nuestros servicios.' : 'Accede a tu cuenta y retoma donde lo dejaste.'}
+          >
             <AnimatePresence mode="wait">
               <motion.div
                 key={isSignUp ? 'clerkSignUp' : 'clerkSignIn'}
@@ -185,6 +190,7 @@ export default function AuthPage() {
                     routing="path"
                     path={pathname}
                     afterSignUpUrl={afterUrl}
+                    signInUrl={pathname}
                     appearance={{
                       variables: { colorPrimary: primary, fontWeight: { normal: '400', medium: '500', bold: '600' }, borderRadius: '0.75rem' },
                       elements: {
