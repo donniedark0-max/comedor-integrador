@@ -25,7 +25,7 @@ export default async function AdminLayout({
     <ClerkProvider {...pageProps} localization={esES}>
       <div className="flex h-screen">
         <Sidebar user={user} />
-        <div className="flex-1 overflow-auto">
+        <div className="flex-1 overflow-auto bg-[#f9fbfd]">
           {children}
         </div>
       </div>

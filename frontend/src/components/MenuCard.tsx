@@ -42,7 +42,7 @@ export function MenuCard({ dish, id }: MenuCardProps) {
 
 
   return (
-    <div className="card hover:border-primary hover:border text-black flex flex-col justify-between h-full">
+    <div className="card hover:border-[#2663eb] hover:border text-black flex flex-col justify-between h-full">
       <h3 className="text-xl font-semibold mb-3 text-neutral-dark text-center">{mainDishName}</h3>
 
       <div className="mb-4">
@@ -81,7 +81,7 @@ export function MenuCard({ dish, id }: MenuCardProps) {
 
       <button
         onClick={() => setIsModalOpen(true)}
-        className="btn-primary block text-center w-full mt-auto"
+        className="btn-[#2663eb] block text-center w-full mt-auto"
       >
         Ver detalle
       </button>

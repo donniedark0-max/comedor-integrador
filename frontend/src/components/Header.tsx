@@ -1,44 +1,45 @@
 'use client'
 
-import Link from 'next/link'
-import { usePathname } from 'next/navigation'
+import { motion } from 'framer-motion'
+import { Utensils } from 'lucide-react'
+import { AnimatedButton } from '@/components/animated-button'
+import { useRouter } from 'next/navigation'
+// Asegúrate de que la ruta a AnimatedButton sea correcta
 
-const navItems = [
-  { label: 'Inicio', href: '/' },
-  { label: 'Generar Menú', href: '/menu' },
-]
-
-export default function Header() {
-  const pathname = usePathname() || '/'
+export default function LandingHeader() {
+  const router = useRouter();
 
   return (
-    <header className="bg-white border-b border-neutral-200">
-      <div className="container mx-auto px-4 py-4 flex justify-between items-center">
-        <Link href="/" className="text-2xl font-bold text-blue-600">
-          Comedor Universitario UTP
-        </Link>
-        <nav>
-          <ul className="flex space-x-6">
-            {navItems.map(({ label, href }) => {
-              const isActive = pathname === href
-              return (
-                <li key={href}>
-                  <Link
-                    href={href}
-                    className={`transition-colors px-2 py-1 ${
-                      isActive
-                        ? 'text-blue-600 border-b-2 border-blue-600'
-                        : 'text-gray-700 hover:text-blue-600'
-                    }`}
-                  >
-                    {label}
-                  </Link>
-                </li>
-              )
-            })}
-          </ul>
-        </nav>
+    <motion.header
+      initial={{ y: -100 }}
+      animate={{ y: 0 }}
+      transition={{ duration: 0.6 }}
+      className="relative z-10 flex items-center border-b border-gray-300 justify-between p-6"
+    >
+      <div className="flex items-center gap-2">
+        <motion.div whileHover={{ rotate: 360 }} transition={{ duration: 0.5 }}>
+          <Utensils className="w-8 h-8 text-black" />
+        </motion.div>
+        <span className="text-2xl font-bold text-black">Campus Eats</span>
       </div>
-    </header>
+      <nav className="hidden md:flex items-center gap-6 text-black">
+        <a href="/" className="hover:text-blue-600 transition-colors">
+          Inicio
+        </a>
+        <a href="/menu-balanceado" className="hover:text-blue-600 transition-colors">
+          Menú Balanceado
+        </a>
+        <a href="#" className="hover:text-blue-600 transition-colors">
+          Contacto
+        </a>
+        <AnimatedButton
+          variant="secondary"
+          className="bg-blue-600 hover:bg-blue-700 rounded-full text-white border-0"
+          onClick={() => router.push('/login')} // Ejemplo si necesitaras navegación
+        >
+          Iniciar Sesión
+        </AnimatedButton>
+      </nav>
+    </motion.header>
   )
 }

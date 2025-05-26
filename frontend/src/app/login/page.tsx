@@ -112,7 +112,7 @@ function TextPanel({ isSignUp, onToggleMode }: TextPanelProps) {
             </>
           ) : (
             <>
-              <h2 className="text-2xl sm:text-3xl font-bold mb-4">¡Únete a la familia!</h2>
+              <h2 className="text-2xl sm:text-3xl font-bold mb-4">¡Bienvenido!</h2>
               <p className="mb-8">Crea tu cuenta para comenzar tu aventura con nosotros.</p>
               <button onClick={onToggleMode} className={`${btnBase} bg-indigo-500 hover:scale-105`}>Crear Cuenta</button>
             </>
@@ -128,6 +128,16 @@ export default function AuthPage() {
   const { isLoaded, sessionId } = useAuth();
   const router = useRouter();
   const pathname = usePathname();
+  const [isLocked, setIsLocked] = useState(true)
+  const [passwordInput, setPasswordInput] = useState("")
+
+  const unlockLogin = () => {
+    if (passwordInput === "claveSuperSecreta") {
+      setIsLocked(false)
+    } else {
+      router.push("/")
+    }
+  }
 
   // Detectar si estamos en hash #signup
   useEffect(() => {
@@ -159,7 +169,27 @@ export default function AuthPage() {
   const primary = isSignUp ? '#059669' : '#5b21b6';
   const buttonCls = 'w-full rounded-lg py-2.5 px-4 text-sm font-semibold text-white shadow-md transition-transform transform hover:scale-102';
   const focusCls = isSignUp ? 'focus:ring-green-500' : 'focus:ring-indigo-500';
-
+  
+  if (isLocked) {
+    return (
+      <div className="flex flex-col items-center justify-center min-h-screen bg-slate-900 text-white">
+        <div className="bg-gray-800 p-6 rounded-[30px] shadow-lg max-w-md w-full text-center">
+          <h2 className="text-xl text-red-200 mb-4">Acceso solo para Administradores</h2>
+          <input
+            type="password"
+            value={passwordInput}
+            onChange={(e) => setPasswordInput(e.target.value)}
+            className="mb-4 p-2 bg-gray-700  text-center rounded-[30px] w-full"
+            placeholder="Introduce la contraseña"
+          />
+          <button onClick={unlockLogin} className="bg-blue-600 px-4 py-2 rounded-[30px] text-white hover:bg-blue-700 transition-colors">
+            Desbloquear
+          </button>
+        </div>
+      </div>
+    )
+  }
+  
   return (
     <div className="flex items-center justify-center min-h-screen bg-slate-900 p-6">
       <div

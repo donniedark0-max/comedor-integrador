@@ -13,7 +13,7 @@ export default function Footer() {
     <footer className="bg-gray-100 mt-auto border-t border-gray-200">
       <div className="container mx-auto px-4 py-6 flex flex-col md:flex-row justify-between items-center">
         <p className="text-sm text-gray-600">
-          © {new Date().getFullYear()} Comedor Universitario UTP. Todos los derechos reservados.
+          © {new Date().getFullYear()} Comedor Universitario UTP.
         </p>
         <ul className="flex space-x-4 mt-4 md:mt-0">
           {footerLinks.map(({ label, href }) => (
