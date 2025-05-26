@@ -1,12 +1,6 @@
 import Link from 'next/link';
-import { auth } from '@clerk/nextjs/server';
-import { redirect } from 'next/navigation';
 
-export default async function Home() {
-  const { userId } = await auth();  
-  if (!userId) {
-    redirect('/login');
-  }
+export default function Home() {
 
   return (
     <div className="container mx-auto px-4 py-12">

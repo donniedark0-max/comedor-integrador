@@ -1,25 +1,17 @@
-// middleware.ts
-import { clerkMiddleware, createRouteMatcher } from '@clerk/nextjs/server';
+import { clerkMiddleware } from '@clerk/nextjs/server';
 import { NextResponse } from 'next/server';
 
-const isPublic = createRouteMatcher([
-  '/login(.*)',
-  '/api/(.*)',
-]);
-
 export default clerkMiddleware(async (auth, req) => {
-  if (!isPublic(req)) {
-    const { userId } = await auth();
-    if (!userId) {
-      return NextResponse.redirect(new URL('/login', req.url));
-    }
+  // Sólo bloquea rutas que empiecen por /admin
+  const authObj = await auth();
+  if (req.nextUrl.pathname.startsWith('/admin') && !authObj.userId) {
+    const url = req.nextUrl.clone();
+    url.pathname = '/login';
+    return NextResponse.redirect(url);
   }
   return NextResponse.next();
 });
 
 export const config = {
-  matcher: [
-    '/((?!.*\\..*|_next).*)',
-    '/api/(.*)',
-  ],
+  matcher: ['/admin/:path*'],  // Aplica middleware únicamente a /admin/*
 };

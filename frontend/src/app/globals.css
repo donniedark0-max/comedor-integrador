@@ -35,8 +35,8 @@
 
 @media (prefers-color-scheme: dark) {
   :root {
-    --background: #1f2937;
-    --foreground: #f3f4f6;
+    --background: #f9fbfd;
+    --foreground: #000000;
   }
 }
 
@@ -121,4 +121,9 @@ body {
 /* Transición suave entre degradados de panel */
 .auth-panel {
   transition: background 0.6s ease, color 0.6s ease;
+}
+
+.cl-avatarBox {
+  width: 2.75rem;
+  height: 2.75rem;
 }

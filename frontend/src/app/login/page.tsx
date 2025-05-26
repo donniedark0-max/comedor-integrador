@@ -146,7 +146,7 @@ export default function AuthPage() {
   // Si ya hay sesión, redirigir
   useEffect(() => {
     if (isLoaded && sessionId) {
-      const dest = new URLSearchParams(window.location.search).get('redirect_url') || '/';
+      const dest = new URLSearchParams(window.location.search).get('redirect_url') || '/admin';
       router.push(dest);
     }
   }, [isLoaded, sessionId, router]);
@@ -155,7 +155,7 @@ export default function AuthPage() {
     return <div className="flex items-center justify-center min-h-screen bg-slate-900 text-white">Cargando…</div>;
   }
 
-  const afterUrl = new URLSearchParams(window.location.search).get('redirect_url') || '/';
+  const afterUrl = '/admin'
   const primary = isSignUp ? '#059669' : '#5b21b6';
   const buttonCls = 'w-full rounded-lg py-2.5 px-4 text-sm font-semibold text-white shadow-md transition-transform transform hover:scale-102';
   const focusCls = isSignUp ? 'focus:ring-green-500' : 'focus:ring-indigo-500';
@@ -189,7 +189,7 @@ export default function AuthPage() {
                   <SignUp
                     routing="path"
                     path={pathname}
-                    afterSignUpUrl={afterUrl}
+                    afterSignUpUrl={afterUrl} 
                     signInUrl={pathname}
                     appearance={{
                       variables: { colorPrimary: primary, fontWeight: { normal: '400', medium: '500', bold: '600' }, borderRadius: '0.75rem' },
@@ -211,6 +211,7 @@ export default function AuthPage() {
                     routing="path"
                     path={pathname}
                     afterSignInUrl={afterUrl}
+                    signUpUrl={`${pathname}#signup`}
                     appearance={{
                       variables: { colorPrimary: primary, fontWeight: { normal: '400', medium: '500', bold: '600' }, borderRadius: '0.75rem' },
                       elements: {
