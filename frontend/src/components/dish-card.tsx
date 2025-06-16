@@ -1,5 +1,6 @@
 "use client"
 
+import { useState } from "react"
 import { motion } from "framer-motion"
 import { Card, CardContent } from "@/components/ui/card"
 import { Star } from "lucide-react"
@@ -11,12 +12,83 @@ interface DishCardProps {
   description: string
   image: string
   rating?: number
-  isPopular?: boolean
   onClick: () => void
+  onRatingChange?: (newRating: number) => void  // <-- propiedad agregada
   index: number
 }
 
+interface InteractiveStarRatingProps {
+  initialRating?: number
+  onRatingChange: (rating: number) => void
+}
+
+function InteractiveStarRating({ initialRating = 0, onRatingChange }: InteractiveStarRatingProps) {
+  const [rating, setRating] = useState(initialRating)
+  const [hoverRating, setHoverRating] = useState(0)
+
+  const getStarType = (starIndex: number) => {
+    const currentRating = hoverRating || rating
+    if (currentRating >= starIndex) return "full"
+    if (currentRating >= starIndex - 0.5) return "half"
+    return "empty"
+  }
+
+  const handleMouseMove = (e: React.MouseEvent<HTMLSpanElement>, starIndex: number) => {
+    const { left, width } = e.currentTarget.getBoundingClientRect()
+    const x = e.clientX - left
+    const newHoverRating = x < width / 2 ? starIndex - 0.5 : starIndex
+    setHoverRating(newHoverRating)
+  }
+
+  const handleMouseLeave = () => {
+    setHoverRating(0)
+  }
+
+  const handleClick = (starValue: number) => {
+    setRating(starValue)
+    onRatingChange(starValue)
+  }
+
+  const renderStar = (starIndex: number) => {
+    const type = getStarType(starIndex)
+    if (type === "full") {
+      return <Star className="w-6 h-6 text-yellow-500" />
+    } else if (type === "half") {
+      return (
+        <div className="relative w-6 h-6">
+          <Star className="w-6 h-6 text-gray-300" />
+          <div className="absolute top-0 left-0 overflow-hidden" style={{ width: "50%" }}>
+            <Star className="w-6 h-6 text-yellow-500" />
+          </div>
+        </div>
+      )
+    } else {
+      return <Star className="w-6 h-6 text-gray-300" />
+    }
+  }
+
+  return (
+    <div className="flex space-x-1" onMouseLeave={handleMouseLeave}>
+      {[1, 2, 3, 4, 5].map((starIndex) => (
+        <span
+          key={starIndex}
+          className="cursor-pointer"
+          onMouseMove={(e) => handleMouseMove(e, starIndex)}
+          onClick={(e) => {
+            e.stopPropagation(); // Evita que se propague el clic al contenedor padre
+            handleClick(hoverRating || starIndex);
+          }}
+        >
+          {renderStar(starIndex)}
+        </span>
+      ))}
+    </div>
+  )
+}
+
 export function DishCard({ id, name, description, image, rating, isPopular, onClick, index }: DishCardProps) {
+  const [userRating, setUserRating] = useState(rating || 0)
+
   return (
     <motion.div
       initial={{ opacity: 0, scale: 0.9 }}
@@ -49,14 +121,17 @@ export function DishCard({ id, name, description, image, rating, isPopular, onCl
         <CardContent className="p-4">
           <div className="flex items-start justify-between mb-2">
             <h3 className="font-semibold text-lg line-clamp-1">{name}</h3>
-            {rating && (
+            {userRating > 0 && (
               <div className="flex items-center gap-1 ml-2">
-                <Star className="w-4 h-4 fill-yellow-400 text-yellow-400" />
-                <span className="text-sm font-medium">{rating}</span>
+                <Star className="w-4 h-4 text-yellow-500" />
+                <span className="text-sm font-medium">{userRating}</span>
               </div>
             )}
           </div>
           <p className="text-gray-600 text-sm line-clamp-2">{description}</p>
+          <div className="mt-2">
+            <InteractiveStarRating initialRating={userRating} onRatingChange={(newRating) => setUserRating(newRating)} />
+          </div>
         </CardContent>
       </Card>
     </motion.div>

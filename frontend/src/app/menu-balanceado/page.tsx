@@ -7,6 +7,7 @@ import { DishCard } from "@/components/dish-card"
 import { NutritionModal } from "@/components/nutrition-modal"
 import { FilterDropdown } from "@/components/filter-dropdown"
 import { AnimatedButton } from "@/components/animated-button"
+import { OrderModal } from "@/components/OrderModal"
 
 const randomDishes = [
   {
@@ -104,7 +105,7 @@ const topRatedDishes = [
     name: "Lasagna de Carne",
     description: "Carne molida, salsa bechamel, pasta, queso",
     image: "/assets/images/completos/LasagnaCarne.png",
-    rating: 4.9,
+    rating: 1.9,
     nutrition: { calories: 480, protein: 28, carbs: 42, fat: 22 },
     ingredients: ["Carne molida", "Salsa bechamel", "Pasta fresca", "Queso"],
   },
@@ -137,55 +138,82 @@ const topRatedDishes = [
   },
 ]
 
+// Opciones de filtro
 const ingredientOptions = [
-  { id: "pollo", label: "Pollo", count: 15 },
-  { id: "pescado", label: "Pescado", count: 12 },
-  { id: "vegetariano", label: "Vegetariano", count: 20 },
-  { id: "vegano", label: "Vegano", count: 8 },
-]
-
-const categoryOptions = [
-  { id: "sopas", label: "Sopas", count: 6 },
-  { id: "pastas", label: "Pastas", count: 10 },
-  { id: "carnes", label: "Carnes", count: 12 },
-  { id: "ensaladas", label: "Ensaladas", count: 8 },
+  { id: "Quinoa cocida", label: "Quinoa" },
+  { id: "Aguacate fresco", label: "Aguacate" },
+  { id: "Tomates cherry", label: "Tomates" },
+  { id: "Pepino", label: "Pepino" },
+  { id: "Aderezo de limón", label: "Aderezo" },
+  // Agrega más según los ingredientes de tus platos...
 ]
 
 const ratingOptions = [
-  { id: "4-5", label: "4-5 estrellas", count: 25 },
-  { id: "3-4", label: "3-4 estrellas", count: 15 },
-  { id: "2-3", label: "2-3 estrellas", count: 5 },
+  { id: "4-5", label: "4-5 estrellas" },
+  { id: "3-4", label: "3-4 estrellas" },
+  { id: "2-3", label: "2-3 estrellas" },
 ]
-
-const dietOptions = [
-  { id: "sin-gluten", label: "Sin Gluten", count: 12 },
-  { id: "bajo-sodio", label: "Bajo en Sodio", count: 18 },
-  { id: "alto-proteina", label: "Alto en Proteína", count: 20 },
-]
+function shuffleArray<T>(array: T[]): T[] {
+  const copy = [...array]
+  for (let i = copy.length - 1; i > 0; i--) {
+    const j = Math.floor(Math.random() * (i + 1))
+    ;[copy[i], copy[j]] = [copy[j], copy[i]]
+  }
+  return copy
+}
 
 export default function MenuBalanceadoPage() {
   const router = useRouter()
+  const [displayedRandomDishes, setDisplayedRandomDishes] = useState(randomDishes)
   const [selectedDish, setSelectedDish] = useState<any>(null)
-  const [isModalOpen, setIsModalOpen] = useState(false)
+  const [isNutritionModalOpen, setIsNutritionModalOpen] = useState(false)
+  const [isOrderModalOpen, setIsOrderModalOpen] = useState(false)
   const [selectedIngredients, setSelectedIngredients] = useState<string[]>([])
-  const [selectedCategories, setSelectedCategories] = useState<string[]>([])
   const [selectedRatings, setSelectedRatings] = useState<string[]>([])
-  const [selectedDiets, setSelectedDiets] = useState<string[]>([])
+
+  const filterDish = (dish: any): boolean => {
+    const ingredientMatch =
+      selectedIngredients.length === 0 ||
+      dish.ingredients.some((ing: string) => selectedIngredients.includes(ing))
+    
+    let ratingMatch = true
+    if (selectedRatings.length > 0 && dish.rating) {
+      ratingMatch = selectedRatings.some((range) => {
+        const [min, max] = range.split("-").map(Number)
+        return dish.rating >= min && dish.rating <= max
+      })
+    }
+    return ingredientMatch && ratingMatch
+  }
+
+  const filteredRandomDishes = displayedRandomDishes.filter(filterDish)
+  const filteredPopularDishes = popularDishes.filter(filterDish)
+  const filteredTopRatedDishes = topRatedDishes.filter(filterDish)
 
   const handleDishClick = (dish: any) => {
     setSelectedDish(dish)
-    setIsModalOpen(true)
+    setIsNutritionModalOpen(true)
   }
 
-  const handleAddToCart = () => {
-    setIsModalOpen(false)
-    // Aquí iría la lógica para añadir al carrito
+  // En NutritionModal, el botón "Seleccionar Menu" (onAddToCart) ahora abre el OrderModal
+  const handleSelectMenu = () => {
+    setIsNutritionModalOpen(false)
+    setIsOrderModalOpen(true)
+  }
+
+  // Callback al realizar el pedido desde OrderModal
+  const handlePlaceOrder = (orderDetails: { quantity: number; code: string }) => {
+    setIsOrderModalOpen(false)
+    // Aquí puedes implementar la lógica de envío del pedido
+    console.log("Pedido realizado:", orderDetails)
+  }
+
+  const handleGenerateNewDishes = () => {
+    setDisplayedRandomDishes(shuffleArray(randomDishes))
   }
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-gray-50 to-blue-50">
-      
-
       <div className="max-w-7xl mx-auto px-6 py-8">
         {/* Title */}
         <motion.div
@@ -213,22 +241,10 @@ export default function MenuBalanceadoPage() {
               onSelectionChange={setSelectedIngredients}
             />
             <FilterDropdown
-              title="Categorías"
-              options={categoryOptions}
-              selectedOptions={selectedCategories}
-              onSelectionChange={setSelectedCategories}
-            />
-            <FilterDropdown
               title="Calificaciones"
               options={ratingOptions}
               selectedOptions={selectedRatings}
               onSelectionChange={setSelectedRatings}
-            />
-            <FilterDropdown
-              title="Dietas"
-              options={dietOptions}
-              selectedOptions={selectedDiets}
-              onSelectionChange={setSelectedDiets}
             />
           </div>
         </motion.div>
@@ -240,14 +256,14 @@ export default function MenuBalanceadoPage() {
           transition={{ duration: 0.6, delay: 0.4 }}
           className="mb-12"
         >
-            <div className="flex items-center justify-between mb-6">
+          <div className="flex items-center justify-between mb-6">
             <h2 className="text-2xl font-semibold text-gray-800">Platos Aleatorios</h2>
             <motion.div
               animate={{
                 background: [
-                "linear-gradient(90deg, #4e029d, #3b82f6, #ef4444)",
-                "linear-gradient(90deg, #3b82f6, #9333ea, #ef4444)",
-                "linear-gradient(90deg, #ef4444, #4e029d, #3b82f6)",
+                  "linear-gradient(90deg, #4e029d, #3b82f6, #ef4444)",
+                  "linear-gradient(90deg, #3b82f6, #9333ea, #ef4444)",
+                  "linear-gradient(90deg, #ef4444, #4e029d, #3b82f6)",
                 ],
                 backgroundSize: "200% 200%",
                 backgroundPosition: ["0% 50%", "100% 50%", "0% 50%"],
@@ -257,24 +273,21 @@ export default function MenuBalanceadoPage() {
                 repeat: Infinity,
                 repeatType: "reverse",
               }}
-              style={{
-                borderRadius: "9999px",
-                padding: 0,
-              }}
+              style={{ borderRadius: "9999px", padding: 0 }}
               className="w-auto"
-              >
+            >
               <AnimatedButton
-                onClick={() => router.push("#")}
+                onClick={handleGenerateNewDishes}
                 className="bg-transparent text-white px-8 py-4 text-lg font-semibold rounded-full shadow-2xl transition-colors duration-300 backdrop-blur-[6px] w-full"
               >
                 <div className="flex items-center gap-2">
-                Generar Nuevos Platos
+                  Generar Nuevos Platos
                 </div>
               </AnimatedButton>
-              </motion.div>
-            </div>
+            </motion.div>
+          </div>
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
-            {randomDishes.map((dish, index) => (
+            {filteredRandomDishes.map((dish, index) => (
               <DishCard
                 key={dish.id}
                 id={dish.id}
@@ -297,7 +310,7 @@ export default function MenuBalanceadoPage() {
         >
           <h2 className="text-2xl font-semibold text-gray-800 mb-6">Platos Populares</h2>
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
-            {popularDishes.map((dish, index) => (
+            {filteredPopularDishes.map((dish, index) => (
               <DishCard
                 key={dish.id}
                 id={dish.id}
@@ -305,7 +318,7 @@ export default function MenuBalanceadoPage() {
                 description={dish.description}
                 image={dish.image}
                 rating={dish.rating}
-                isPopular={true}
+
                 onClick={() => handleDishClick(dish)}
                 index={index}
               />
@@ -322,7 +335,7 @@ export default function MenuBalanceadoPage() {
         >
           <h2 className="text-2xl font-semibold text-gray-800 mb-6">Mejor Valorados</h2>
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
-            {topRatedDishes.map((dish, index) => (
+            {filteredTopRatedDishes.map((dish, index) => (
               <DishCard
                 key={dish.id}
                 id={dish.id}
@@ -341,9 +354,17 @@ export default function MenuBalanceadoPage() {
       {/* Nutrition Modal */}
       <NutritionModal
         dish={selectedDish}
-        isOpen={isModalOpen}
-        onClose={() => setIsModalOpen(false)}
-        onAddToCart={handleAddToCart}
+        isOpen={isNutritionModalOpen}
+        onClose={() => setIsNutritionModalOpen(false)}
+        onAddToCart={handleSelectMenu}
+      />
+
+      {/* Order Modal */}
+      <OrderModal
+        dishName={selectedDish?.name || ""}
+        isOpen={isOrderModalOpen}
+        onClose={() => setIsOrderModalOpen(false)}
+        onPlaceOrder={handlePlaceOrder}
       />
     </div>
   )

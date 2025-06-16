@@ -4,7 +4,7 @@ import { motion, AnimatePresence } from "framer-motion"
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog"
 import { Button } from "@/components/ui/button"
 import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from "@/components/ui/accordion"
-import { ShoppingCart, X } from "lucide-react"
+import { ShoppingCart } from "lucide-react"
 
 interface NutritionInfo {
   calories: number
@@ -44,14 +44,7 @@ export function NutritionModal({ dish, isOpen, onClose, onAddToCart }: Nutrition
               transition={{ duration: 0.3 }}
             >
               <DialogHeader className="relative">
-                <motion.button
-                  onClick={onClose}
-                  className="absolute -top-2 -right-2 w-8 h-8 rounded-full bg-gray-100 hover:bg-gray-200 flex items-center justify-center transition-colors"
-                  whileHover={{ scale: 1.1 }}
-                  whileTap={{ scale: 0.9 }}
-                >
-                  <X className="w-4 h-4" />
-                </motion.button>
+              
                 <DialogTitle className="text-2xl font-bold pr-8">{dish.name}</DialogTitle>
                 <p className="text-gray-600 mt-2">{dish.description}</p>
               </DialogHeader>

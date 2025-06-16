@@ -5,8 +5,7 @@ import { motion } from "framer-motion"
 import { useRouter } from "next/navigation"
 import { DishCard } from "@/components/dish-card"
 import { NutritionModal } from "@/components/nutrition-modal"
-import { AnimatedButton } from "@/components/animated-button"
-import { ArrowLeft, ChefHat } from "lucide-react"
+import { OrderModal } from "@/components/OrderModal"
 
 const menuOptions = [
   {
@@ -77,23 +76,29 @@ const menuOptions = [
 export default function MenuPersonalizadoResultados() {
   const router = useRouter()
   const [selectedDish, setSelectedDish] = useState<(typeof menuOptions)[0] | null>(null)
-  const [isModalOpen, setIsModalOpen] = useState(false)
+  const [isNutritionModalOpen, setIsNutritionModalOpen] = useState(false)
+  const [isOrderModalOpen, setIsOrderModalOpen] = useState(false)
 
   const handleDishClick = (dish: (typeof menuOptions)[0]) => {
     setSelectedDish(dish)
-    setIsModalOpen(true)
+    setIsNutritionModalOpen(true)
   }
 
-  const handleAddToCart = () => {
-    // Aquí iría la lógica para añadir al carrito
-    setIsModalOpen(false)
-    // Mostrar notificación de éxito
+  // Cuando el usuario presiona "Seleccionar Menu" en NutritionModal
+  const handleSelectMenu = () => {
+    setIsNutritionModalOpen(false)
+    setIsOrderModalOpen(true)
+  }
+
+  const handlePlaceOrder = (orderDetails: { quantity: number; code: string }) => {
+    setIsOrderModalOpen(false)
+    // Implementa la lógica de envío de pedido aquí, por ejemplo:
+    console.log("Pedido realizado:", orderDetails)
+    // Opcionalmente, redirige o muestra una notificación de éxito
   }
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-gray-50 to-blue-50">
-      
-
       <div className="max-w-7xl mx-auto px-6 py-8">
         {/* Title */}
         <motion.div
@@ -135,9 +140,17 @@ export default function MenuPersonalizadoResultados() {
       {/* Nutrition Modal */}
       <NutritionModal
         dish={selectedDish}
-        isOpen={isModalOpen}
-        onClose={() => setIsModalOpen(false)}
-        onAddToCart={handleAddToCart}
+        isOpen={isNutritionModalOpen}
+        onClose={() => setIsNutritionModalOpen(false)}
+        onAddToCart={handleSelectMenu}
+      />
+
+      {/* Order Modal */}
+      <OrderModal
+        dishName={selectedDish?.name || ""}
+        isOpen={isOrderModalOpen}
+        onClose={() => setIsOrderModalOpen(false)}
+        onPlaceOrder={handlePlaceOrder}
       />
     </div>
   )
