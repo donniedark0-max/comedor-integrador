@@ -4,19 +4,34 @@ import json
 import pandas as pd
 from sklearn.preprocessing import MinMaxScaler
 from sklearn.cluster import KMeans
-import numpy as np, random
+import numpy as np
+import random
+import time
+from dotenv import load_dotenv
 
 from google.genai import Client
 from app.settings import settings
 
 # --- Configure your Gemini API key ---
-# Option 1: Set environment variable before running script:
 os.environ["GENAI_API_KEY"] = settings.GENAI_API_KEY
 
-
-# 1. Load and preprocess ingredients
+# --- 1. Load and preprocess ingredients (improved from your test) ---
 def cargar_ingredientes(filepath):
-    df = pd.read_csv(filepath)
+    if not filepath or not os.path.exists(filepath):
+        raise FileNotFoundError(f"No se encontró el archivo de ingredientes: {filepath}")
+
+    # Try multiple encodings
+    for enc in ("utf-8", "latin1", "iso-8859-1"):
+        try:
+            df = pd.read_csv(filepath, encoding=enc)
+            break
+        except UnicodeDecodeError:
+            continue
+    else:
+        # last try without specifying encoding
+        df = pd.read_csv(filepath)
+
+    # Expected numeric columns
     numeric_cols = [
         'Energía (kcal)', 'Agua (g)', 'Proteínas totales (g)', 'Grasa total (g)',
         'Carbohidratos disponibles (g)', 'Fibra dietaria (g)', 'Calcio (mg)',
@@ -24,12 +39,32 @@ def cargar_ingredientes(filepath):
         'Vitamina A equivalentes totales (µg)', 'Tiamina (mg)', 'Riboflavina (mg)',
         'Niacina (mg)', 'Vitamina C (mg)', 'Sodio (mg)', 'Potasio (mg)'
     ]
-    df[numeric_cols] = df[numeric_cols].apply(
-        lambda col: pd.to_numeric(col.astype(str).str.replace(',', '.'), errors='coerce')
-    ).fillna(0)
+    # Filter missing cols
+    missing = [c for c in numeric_cols if c not in df.columns]
+    if missing:
+        print(f"[WARN] Faltan columnas numéricas: {missing}")
+        numeric_cols = [c for c in numeric_cols if c in df.columns]
+    if 'NOMBRE DEL ALIMENTO' not in df.columns:
+        raise KeyError("Falta la columna 'NOMBRE DEL ALIMENTO'")
+
+    # Convert & clean
+    df[numeric_cols] = (
+        df[numeric_cols]
+        .astype(str)
+        .apply(lambda col: pd.to_numeric(col.str.replace(',', '.', regex=False), errors='coerce'))
+        .fillna(0)
+    )
+    df['NOMBRE_NORMALIZADO'] = (
+        df['NOMBRE DEL ALIMENTO']
+        .astype(str)
+        .str.strip()
+        .str.lower()
+    )
+    df = df.dropna(subset=['NOMBRE_NORMALIZADO'])
+    df = df[df['NOMBRE_NORMALIZADO'] != '']
     return df, numeric_cols
 
-# 2. Cluster ingredients
+# --- 2. Cluster ingredients (unchanged) ---
 def cluster_ingredientes(df, numeric_cols, n_clusters=4):
     scaler = MinMaxScaler()
     X = scaler.fit_transform(df[numeric_cols])
@@ -38,142 +73,167 @@ def cluster_ingredientes(df, numeric_cols, n_clusters=4):
     df['Cluster'] = labels
     return {i: df[df.Cluster==i] for i in range(n_clusters)}, X
 
-# 3. Randomly pick one prototype per cluster for variety
-def pick_random_prototipos(cluster_map, df):
-    protos = []
-    for i, sub in cluster_map.items():
-        row = sub.sample(1).iloc[0]
-        protos.append({
+# --- 3. Select prototypes with affinity: sample from largest cluster ---
+def pick_affine_prototipos(cluster_map, min_ing=3, max_ing=7):
+    # find cluster with most items
+    best_cluster = max(cluster_map.items(), key=lambda kv: len(kv[1]))[1]
+    if len(best_cluster) < min_ing:
+        print("[ERROR] No hay suficientes ingredientes similares para garantizar afinidad.")
+        return []
+    n = random.randint(min_ing, min(max_ing, len(best_cluster)))
+    sampled = best_cluster.sample(n)
+    return [
+        {
             'name': row['NOMBRE DEL ALIMENTO'],
             'energy': float(row['Energía (kcal)']),
             'protein': float(row['Proteínas totales (g)']),
             'fat': float(row['Grasa total (g)']),
-            'carbs': float(row['Carbohidratos disponibles (g)'])
-        })
-    return protos
+            'carbs': float(row['Carbohidratos disponibles (g)']),
+        }
+        for _, row in sampled.iterrows()
+    ]
 
-# 4. Ask Gemini for coherent selection with Peruvian lunch context
-def ask_gemini_to_select(prototypes):
+# --- 4. Ask Gemini for coherent Peruvian dish (improved retries & JSON validation) ---
+def ask_gemini_to_select(prototypes, max_retries=5):
     api_key = os.environ.get("GENAI_API_KEY")
     if not api_key:
         raise ValueError("Define GENAI_API_KEY en environment.")
     client = Client(api_key=api_key)
 
-    # Prompt instructing Gemini to choose a well-known Peruvian dish
     prompt = (
-        "You are a chef specializing in typical Peruvian university lunch dishes. "
-        "Given these ingredient prototypes with nutrition data, select three that form a coherent, well-known Peruvian dish "
-        "(e.g., 'Lomo Saltado', 'Arroz con Pollo', 'Seco de Pollo', 'Ají de Gallina', 'Tallarin Saltado'). "
-        "Assign integer weights in grams, and provide the dish name. "
-        "Respond ONLY with a JSON object containing keys 'dish_name', 'ingredients' (list of names), and 'weights_g' (list of integers)."
+        "Eres un chef de cocina peruana; selecciona un plato reconocido y coherente usando SÓLO estos ingredientes:\n"
+        f"{json.dumps(prototypes, ensure_ascii=False, indent=2)}\n"
+        "Responde ÚNICAMENTE con un JSON: {\"dish_name\": string, \"ingredients\": [names], \"weights_g\": [integers]}. "
+        "Si no es posible, devuelve {}."
     )
-    prompt += "\nPrototypes: " + json.dumps(prototypes)
 
-    response = client.models.generate_content(
-        model="gemini-2.5-flash-preview-04-17",
-        contents=prompt
-    )
-    raw = response.candidates[0].content
-    text = getattr(raw, 'text', None) or ''.join(
-        getattr(p, 'text', '') for p in getattr(raw, 'parts', [])
-    ) or str(raw)
-    clean = re.sub(r"^```json|```$", "", text).strip()
-    return clean
+    for attempt in range(1, max_retries+1):
+        print(f"[INFO] Gemini intento {attempt}/{max_retries}...")
+        resp = client.models.generate_content(
+            model="gemini-2.5-flash-preview-04-17",
+            contents=prompt
+        )
+        raw = resp.candidates[0].content
+        text = getattr(raw, 'text', None) or ''.join(getattr(p, 'text', '') for p in getattr(raw, 'parts', []))
+        clean = re.sub(r"^```json|```$", "", text, flags=re.IGNORECASE).strip()
+        try:
+            data = json.loads(clean)
+            if (
+                isinstance(data, dict)
+                and 'dish_name' in data
+                and isinstance(data.get('ingredients'), list)
+                and isinstance(data.get('weights_g'), list)
+                and len(data['ingredients']) == len(data['weights_g'])
+                and 3 <= len(data['ingredients']) <= 7
+            ):
+                return data
+            else:
+                print(f"[WARN] Formato inválido o ingredientes insuficientes: {data}")
+        except json.JSONDecodeError:
+            print(f"[WARN] JSON inválido: {clean}")
+        time.sleep(2)
 
-# 5. Compute totals from Gemini selection
+    print("[ERROR] Gemini no devolvió un JSON válido tras todos los intentos.")
+    return {}
+
+# --- 5. Compute totals from Gemini selection (unchanged) ---
 def calcular_totales_gemini(df, selection):
     totals = {'Calorías': 0, 'Carbohidratos': 0, 'Proteínas': 0, 'Grasas': 0}
     for item in selection:
         row = df[df['NOMBRE DEL ALIMENTO'] == item['name']].iloc[0]
-        factor = item['grams'] / 100
+        factor = item['grams'] / 100.0
         totals['Calorías']      += row['Energía (kcal)'] * factor
         totals['Carbohidratos'] += row['Carbohidratos disponibles (g)'] * factor
         totals['Proteínas']     += row['Proteínas totales (g)'] * factor
         totals['Grasas']        += row['Grasa total (g)'] * factor
     return totals
 
-# 6. Generate complete dishes from platos.csv
+# --- 6. Generate complete dishes from CSV (unchanged) ---
 def generar_platos_completos(platos_csv, num=3):
     dfp = pd.read_csv(platos_csv)
-    res=[]
+    res = []
     for _ in range(num):
         r = dfp.sample(1).iloc[0]
-        E,C,P,F = map(lambda c: float(r[c]), ['Energía (kcal)','Carbohidratos disponibles (g)','Proteínas totales (g)','Grasa total (g)'])
+        E, C, P, F = map(
+            float,
+            [r['Energía (kcal)'], r['Carbohidratos disponibles (g)'],
+             r['Proteínas totales (g)'], r['Grasa total (g)']]
+        )
         res.append({
-            'Plato': r['NOMBRE DEL ALIMENTO'], 'Energía':E, 'Carbohidratos':C,'Proteínas':P,'Grasas':F,
-            'Porcentajes':{
-                'Carbohidratos': C*4/E*100,
-                'Proteínas':    P*4/E*100,
-                'Grasas':       F*9/E*100
+            'Plato': r['NOMBRE DEL ALIMENTO'], 'Energía': E,
+            'Carbohidratos': C, 'Proteínas': P, 'Grasas': F,
+            'Porcentajes': {
+                'Carbohidratos': C * 4 / E * 100,
+                'Proteínas':    P * 4 / E * 100,
+                'Grasas':       F * 9 / E * 100
             }
         })
     return res
 
-# 7. Main interface
+# --- 7. Main interface (adapted option 1) ---
 def main():
-    print("Elija opción (1: Ingredientes balanceados con validación Gemini, 2: Ajustar plato específico):")
-    op = int(input().strip())
+    load_dotenv()
+    print("Elija opción (1: Ingredientes balanceados con IA, 2: Platos CSV):")
+    try:
+        op = int(input().strip())
+    except ValueError:
+        print("Opción no válida."); return
 
     if op == 1:
         df, cols = cargar_ingredientes(settings.INGREDIENTES_CSV)
-        print(f"[INFO] Ingredientes cargados: {len(df)} filas")
-        cluster_map, X = cluster_ingredientes(df, cols)
-        print(f"[INFO] Clustering completado en {len(cluster_map)} grupos.")
-        n = int(input("¿Cuántos platos quieres generar? [3]: ").strip() or 3)
+        print(f"[INFO] Ingredientes cargados: {len(df)} registros")
+        cluster_map, _ = cluster_ingredientes(df, cols)
+        print(f"[INFO] Ingredientes agrupados en {len(cluster_map)} clusters")
 
-        target = {'Carbohidratos': (50,60), 'Proteínas': (10,15), 'Grasas': (20,30)}
+        n = int(input("¿Cuántos platos quieres generar? [3]: ").strip() or 3)
+        objetivos = {'Carbohidratos': (50,60), 'Proteínas': (10,15), 'Grasas': (20,30)}
         max_attempts = 5
 
-        for idx in range(1, n+1):
-            print(f"\n--- Plato {idx} ---")
+        for i in range(1, n+1):
+            print(f"\n--- Generando Plato {i} ---")
             for attempt in range(1, max_attempts+1):
-                print(f"[INFO] Intento {attempt} de {max_attempts}...")
-                protos = pick_random_prototipos(cluster_map, df)
-                print("Prototipos:")
+                protos = pick_affine_prototipos(cluster_map)
+                if not protos:
+                    print("[ERROR] No se generaron prototipos con afinidad. Abortando.")
+                    return
+                print("Prototipos seleccionados:")
                 for p in protos:
                     print(f" - {p['name']} (E{p['energy']} kcal, C{p['carbs']}g, P{p['protein']}g, F{p['fat']}g)")
-                try:
-                    gem_json = ask_gemini_to_select(protos)
-                    data = json.loads(gem_json)
-                except Exception as e:
-                    print(f"[WARN] Error en respuesta Gemini: {e}")
+
+                data = ask_gemini_to_select(protos, max_retries=max_attempts)
+                if not data:
                     continue
 
-                selection = [{'name': n, 'grams': g} for n,g in zip(data['ingredients'], data['weights_g'])]
+                selection = [{'name': n, 'grams': g} for n, g in zip(data['ingredients'], data['weights_g'])]
                 totals = calcular_totales_gemini(df, selection)
-                pc = totals['Carbohidratos']*4/totals['Calorías']*100
-                pp = totals['Proteínas']*4/totals['Calorías']*100
-                pf = totals['Grasas']*9/totals['Calorías']*100
-                print(f"[DEBUG] % macros => C:{pc:.1f}, P:{pp:.1f}, F:{pf:.1f}")
-                if target['Carbohidratos'][0] <= pc <= target['Carbohidratos'][1] and \
-                   target['Proteínas'][0] <= pp <= target['Proteínas'][1] and \
-                   target['Grasas'][0] <= pf <= target['Grasas'][1]:
-                    break
-                print("[WARN] No cumple macros, reintentando combinación de ingredientes...")
+                pc = totals['Carbohidratos'] * 4 / totals['Calorías'] * 100
+                pp = totals['Proteínas'] * 4 / totals['Calorías'] * 100
+                pf = totals['Grasas'] * 9 / totals['Calorías'] * 100
 
-            dish_name = data.get('dish_name', 'Plato personalizado')
-            print(dish_name)
+                if (
+                    objetivos['Carbohidratos'][0] <= pc <= objetivos['Carbohidratos'][1] and
+                    objetivos['Proteínas'][0]   <= pp <= objetivos['Proteínas'][1]   and
+                    objetivos['Grasas'][0]      <= pf <= objetivos['Grasas'][1]
+                ):
+                    break
+                print("[WARN] No cumple objetivos nutricionales, reintentando...")
+
+            # show final dish
+            name = data.get('dish_name', 'Plato personalizado')
+            print(f"\nPlato: {name}")
             for itm in selection:
-                print(f"  {itm['name']}: {itm['grams']}g")
+                print(f"  - {itm['name']}: {itm['grams']}g")
             print(f"  Energía: {totals['Calorías']:.1f} kcal")
-            print(f"  Carbohidratos: {totals['Carbohidratos']:.1f} g")
-            print(f"  Proteínas: {totals['Proteínas']:.1f} g")
-            print(f"  Grasas: {totals['Grasas']:.1f} g")
-            print("  % Macronutrientes:")
-            print(f"    Carbohidratos: {pc:.1f}%")
-            print(f"    Proteínas:    {pp:.1f}%")
-            print(f"    Grasas:       {pf:.1f}%")
+            print(f"  Macronutrientes: C {pc:.1f}%, P {pp:.1f}%, F {pf:.1f}%")
 
     elif op == 2:
         platos = generar_platos_completos(settings.PLATOS_CSV)
         for p in platos:
             print(f"\n{p['Plato']}")
             print(f"  Energía: {p['Energía']:.1f} kcal")
-            print(f"  Carbohidratos: {p['Carbohidratos']:.1f} g")
-            print(f"  Proteínas: {p['Proteínas']:.1f} g")
-            print(f"  Grasas: {p['Grasas']:.1f} g")
-            print("  % Macronutrientes:")
-            for k, v in p['Porcentajes'].items(): print(f"    {k}: {v:.1f}%")
+            for mac, val in p['Porcentajes'].items():
+                print(f"  {mac}: {val:.1f}%")
     else:
         print("Opción no válida.")
+
 

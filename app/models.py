@@ -13,8 +13,12 @@ class MenuItem(BaseModel):
     fat: float
     grams: float
 
+class Dish(BaseModel):
+    dish_name: str
+    items: List[MenuItem]
+
 class MenuResponse(BaseModel):
-    platos: List[List[MenuItem]]
+    dishes: List[Dish]
 
 class Order(BaseModel):
     menu_id: str
