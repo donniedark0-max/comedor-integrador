@@ -1,6 +1,6 @@
 "use client"
 
-import { useState } from "react"
+import { useState, useEffect } from "react"
 import { motion } from "framer-motion"
 import { Card, CardContent } from "@/components/ui/card"
 import { Star } from "lucide-react"
@@ -12,9 +12,11 @@ interface DishCardProps {
   description: string
   image: string
   rating?: number
+  reviewCount?: number
   onClick: () => void
-  onRatingChange?: (newRating: number) => void  // <-- propiedad agregada
+  onRatingChange?: (newRating: number) => void
   index: number
+  isPopular?: boolean
 }
 
 interface InteractiveStarRatingProps {
@@ -22,14 +24,22 @@ interface InteractiveStarRatingProps {
   onRatingChange: (rating: number) => void
 }
 
-function InteractiveStarRating({ initialRating = 0, onRatingChange }: InteractiveStarRatingProps) {
+function InteractiveStarRating({
+  initialRating = 0,
+  onRatingChange
+}: InteractiveStarRatingProps) {
   const [rating, setRating] = useState(initialRating)
   const [hoverRating, setHoverRating] = useState(0)
 
+  // Sincroniza el estado interno cuando initialRating cambia
+  useEffect(() => {
+    setRating(initialRating)
+  }, [initialRating])
+
   const getStarType = (starIndex: number) => {
-    const currentRating = hoverRating || rating
-    if (currentRating >= starIndex) return "full"
-    if (currentRating >= starIndex - 0.5) return "half"
+    const current = hoverRating || rating
+    if (current >= starIndex) return "full"
+    if (current >= starIndex - 0.5) return "half"
     return "empty"
   }
 
@@ -75,8 +85,8 @@ function InteractiveStarRating({ initialRating = 0, onRatingChange }: Interactiv
           className="cursor-pointer"
           onMouseMove={(e) => handleMouseMove(e, starIndex)}
           onClick={(e) => {
-            e.stopPropagation(); // Evita que se propague el clic al contenedor padre
-            handleClick(hoverRating || starIndex);
+            e.stopPropagation()
+            handleClick(hoverRating || starIndex)
           }}
         >
           {renderStar(starIndex)}
@@ -86,8 +96,31 @@ function InteractiveStarRating({ initialRating = 0, onRatingChange }: Interactiv
   )
 }
 
-export function DishCard({ id, name, description, image, rating, isPopular, onClick, index }: DishCardProps) {
+export function DishCard({
+  id,
+  name,
+  description,
+  image,
+  rating,
+  reviewCount,
+  onClick,
+  onRatingChange,
+  index,
+  isPopular
+}: DishCardProps) {
   const [userRating, setUserRating] = useState(rating || 0)
+
+  // Actualiza el estado cuando cambie la prop rating
+  useEffect(() => {
+    setUserRating(rating || 0)
+  }, [rating])
+
+  const handleRating = (newRating: number) => {
+    setUserRating(newRating)
+    if (onRatingChange) {
+      onRatingChange(newRating)
+    }
+  }
 
   return (
     <motion.div
@@ -110,27 +143,24 @@ export function DishCard({ id, name, description, image, rating, isPopular, onCl
           </motion.div>
         )}
         <div className="aspect-[4/3] relative overflow-hidden">
-          <Image
-            src={image || "/placeholder.svg"}
-            alt={name}
-            fill
-            className="object-cover group-hover:scale-110 transition-transform duration-500"
-          />
+          <Image src={image || "/placeholder.svg"} alt={name} fill className="object-cover group-hover:scale-110 transition-transform duration-500" />
           <div className="absolute inset-0 bg-gradient-to-t from-black/70 via-transparent to-transparent" />
         </div>
         <CardContent className="p-4">
           <div className="flex items-start justify-between mb-2">
             <h3 className="font-semibold text-lg line-clamp-1">{name}</h3>
-            {userRating > 0 && (
+            {(userRating > 0 || reviewCount) && (
               <div className="flex items-center gap-1 ml-2">
                 <Star className="w-4 h-4 text-yellow-500" />
-                <span className="text-sm font-medium">{userRating}</span>
+                <span className="text-sm font-medium">
+                  {userRating > 0 ? userRating.toFixed(1) : "-"} {reviewCount ? `(${reviewCount} reseña${reviewCount > 1 ? "s" : ""})` : ""}
+                </span>
               </div>
             )}
           </div>
           <p className="text-gray-600 text-sm line-clamp-2">{description}</p>
           <div className="mt-2">
-            <InteractiveStarRating initialRating={userRating} onRatingChange={(newRating) => setUserRating(newRating)} />
+            <InteractiveStarRating initialRating={userRating} onRatingChange={handleRating} />
           </div>
         </CardContent>
       </Card>
