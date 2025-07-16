@@ -16,11 +16,14 @@ export default async function AdminLayout({
   children: React.ReactNode
   pageProps: any
 }) {
-  
   const { userId } = await auth()
   if (!userId) redirect('/login')
   const client = await clerkClient()
-  const user = await client.users.getUser(userId)
+  const userRaw = await client.users.getUser(userId)
+  
+  // Opción 1: Serializar el objeto para obtener un plain object
+  const user = JSON.parse(JSON.stringify(userRaw))
+  
   return (
     <ClerkProvider {...pageProps} localization={esES}>
       <div className="flex h-screen">
